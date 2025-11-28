@@ -12,15 +12,17 @@ $sql = "SELECT p.id, p.nombre, p.precio, p.stock, p.imagen
         FROM productos p
         INNER JOIN categorias c ON p.categoria_id = c.id
         WHERE c.nombre = 'Pollo Frito'";
-
+// Ejecuta la consulta SQL y devuelve los productos
 $resultado = $conexion->query($sql);
 
-$productos = [];
+$productos = [];// Array donde se guardarán los productos
 if ($resultado && $resultado->num_rows > 0) {
+     // Recorre cada fila (producto) y lo agrega al array
     while ($row = $resultado->fetch_assoc()) {
         $productos[] = $row;
     }
 } else {
+    // Si no hay productos, se detiene la ejecución mostrando un mensaje
     echo "<p style='color:red; text-align:center;'>No hay productos de Pollo Frito disponibles.</p>";
 }
 ?>

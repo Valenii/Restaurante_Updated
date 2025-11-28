@@ -104,11 +104,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['nuevo'])) {
     }
 
     // Insertar producto
- $conexion->query(
-    "INSERT INTO productos (nombre, precio, stock, descripcion, imagen, categoria_id)
-     VALUES ('$nombre', '$precio', '$stock', '$descripcion', '$imagen', '$categoria_id')"
-);
-
+    $conexion->query(
+        "INSERT INTO productos (nombre, precio, stock, descripcion, imagen, categoria_id)
+         VALUES ('$nombre', '$precio', '$stock', '$descripcion', '$imagen', '$categoria_id')"
+    );
 
     header("Location: admin.php");
     exit;
@@ -140,6 +139,7 @@ $categorias = $conexion->query("SELECT * FROM categorias");
 <title>Panel Admin - MendoFood</title>
 <link rel="stylesheet" href="normalize.css">
 <link rel="stylesheet" href="index.css">
+
 <style>
 body { background-color: rgb(245,245,245); }
 .admin-container { width: 90%; margin: 30px auto; }
@@ -185,86 +185,6 @@ h1 { text-align: center; margin-bottom: 30px; }
 </style>
 </head>
 <body>
-  <!-- Encabezado del panel de administración -->
-
-<header class="header-admin">
-  <div class="logo"><p>MENDO<span>FOOD</span></p></div>
-  <!-- Botón que lleva a logout.php para cerrar sesión -->
-  <a href="logout.php">Cerrar Sesión</a>
-</header>
-<!-- Contenedor principal del panel -->
-
-<div class="admin-container">
-  <h1>Panel de Administración</h1>
-<!-- Tabla donde se muestran todos los productos existentes -->
-  <table class="productos-tabla">
-    <thead>
-      <tr>
-                <!-- Encabezados de columnas -->
-
-        <th>ID</th><th>Imagen</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Categoría</th><th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Bucle que recorre todos los productos obtenidos desde la BD -->
-      <?php while ($p = $productos->fetch_assoc()): ?>
-      <tr>
-        <!-- Muestra el ID del producto -->
-        <td><?= $p['id']; ?></td>
-        <!-- Muestra la imagen almacenada en la carpeta Imagenes/ -->
-        <td><img src="Imagenes/<?= htmlspecialchars($p['imagen']); ?>"></td>
-        <!-- Muestra el nombre del producto (limpiado con htmlspecialchars) -->
-        <td><?= htmlspecialchars($p['nombre']); ?></td>
-        <!-- Muestra el precio formateado con 2 decimales -->
-        <td>$<?= number_format($p['precio'], 2); ?></td>
-        <!-- Muestra el stock disponible -->
-        <td><?= $p['stock']; ?></td>
-        <!-- Muestra la categoría o "Sin categoría" si no tiene -->
-        <td><?= $p['categoria'] ?: 'Sin categoría'; ?></td>
-          <!-- Botones de acciones: Editar y Eliminar -->
-        <td>
-           <!-- Botón que abre el modal de edición enviando los datos del producto -->
-          <button class="btn-editar" 
-            onclick="abrirModal('<?= $p['id']; ?>','<?= htmlspecialchars($p['nombre']); ?>','<?= htmlspecialchars($p['descripcion']); ?>','<?= $p['precio']; ?>','<?= $p['stock']; ?>','<?= $p['categoria_id']; ?>')">Editar</button>
-          <a href="?eliminar=<?= $p['id']; ?>" onclick="return confirm('¿Seguro que quieres eliminar este producto?');">
-            <button class="btn-eliminar">Eliminar</button>
-          </a>
-        </td>
-      </tr>
-      <?php endwhile; ?>
-    </tbody>
-  </table>
-
-  <div class="formulario">
-    <h2>Agregar Nuevo Producto</h2>
-        <!-- Formulario que envía los datos por POST y permite subir imágenes -->
-    <form method="POST" enctype="multipart/form-data">
-      <!-- Campo oculto para saber que es un producto nuevo -->
-      <input type="hidden" name="nuevo" value="1">
-      <!-- Nombre del producto -->
-      <input type="text" name="nombre" placeholder="Nombre del producto" required>
-       <!-- Descripción del producto -->
-      <textarea name="descripcion" placeholder="Descripción" rows="3"></textarea>
-       <!-- Precio -->
-      <input type="number" name="precio" step="0.01" placeholder="Precio" required>
-       <!-- Stock -->
-      <input type="number" name="stock" placeholder="Stock disponible" required>
-      <!-- Selección de imagen -->
-      <label>Seleccionar imagen:</label>
-      <input type="file" name="imagen" accept="image/*" required>
-       <!-- Selección de categoría desde la base de datos -->
-      <select name="categoria_id" required>
-        <option value="">Seleccione categoría</option>
-        <!-- Reinicia el puntero del resultado de categorías por si se usó antes -->
-        <?php mysqli_data_seek($categorias, 0);
-        while ($c = $categorias->fetch_assoc()): ?>
-          <option value="<?= $c['id']; ?>"><?= htmlspecialchars($c['nombre']); ?></option>
-        <?php endwhile; ?>
-      </select>
-      <button type="submit">Agregar Producto</button>
-    </form>
-  </div>
-</div>
 
 <header class="header-admin">
   <div class="logo"><p>MENDO<span>FOOD</span></p></div>
@@ -291,7 +211,9 @@ h1 { text-align: center; margin-bottom: 30px; }
         <td><?= $p['categoria'] ?: 'Sin categoría'; ?></td>
         <td>
           <button class="btn-editar" 
-            onclick="abrirModal('<?= $p['id']; ?>','<?= htmlspecialchars($p['nombre']); ?>','<?= htmlspecialchars($p['descripcion']); ?>','<?= $p['precio']; ?>','<?= $p['stock']; ?>','<?= $p['categoria_id']; ?>')">Editar</button>
+            onclick="abrirModal('<?= $p['id']; ?>','<?= htmlspecialchars($p['nombre']); ?>','<?= htmlspecialchars($p['descripcion']); ?>','<?= $p['precio']; ?>','<?= $p['stock']; ?>','<?= $p['categoria_id']; ?>')">
+            Editar
+          </button>
           <a href="?eliminar=<?= $p['id']; ?>" onclick="return confirm('¿Seguro que quieres eliminar este producto?');">
             <button class="btn-eliminar">Eliminar</button>
           </a>
@@ -311,6 +233,7 @@ h1 { text-align: center; margin-bottom: 30px; }
       <input type="number" name="stock" placeholder="Stock disponible" required>
       <label>Seleccionar imagen:</label>
       <input type="file" name="imagen" accept="image/*" required>
+
       <select name="categoria_id" required>
         <option value="">Seleccione categoría</option>
         <?php mysqli_data_seek($categorias, 0);
@@ -335,6 +258,7 @@ h1 { text-align: center; margin-bottom: 30px; }
       <input type="number" name="stock" id="editar_stock" required>
       <label>Imagen nueva (opcional):</label>
       <input type="file" name="imagen" accept="image/*">
+
       <select name="categoria_id" id="editar_categoria" required>
         <option value="">Seleccione categoría</option>
         <?php mysqli_data_seek($categorias, 0);
@@ -342,6 +266,7 @@ h1 { text-align: center; margin-bottom: 30px; }
           <option value="<?= $c['id']; ?>"><?= htmlspecialchars($c['nombre']); ?></option>
         <?php endwhile; ?>
       </select>
+
       <button type="submit">Guardar Cambios</button>
     </form>
   </div>
@@ -362,6 +287,7 @@ window.onclick=function(e){
   if(e.target==modal){ modal.style.display='none'; }
 }
 </script>
+
 </body>
 </html>
 

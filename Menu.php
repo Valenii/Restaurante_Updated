@@ -1,13 +1,18 @@
 <?php
+// Inicia la sesión para poder usar variables como $_SESSION
 session_start();
 
 $conexion = new mysqli("localhost", "root", "", "restaurante_log_reg");
+// Si ocurre un error al conectar, se detiene el script y muestra mensaje
 if ($conexion->connect_error) {
     die("Error de conexión: " . $conexion->connect_error);
 }
-
+// Ejecuta una consulta SQL para obtener todos los productos
+// Solo trae ID, Nombre, Precio, Stock e Imagen
 $resultado = $conexion->query("SELECT ID, Nombre, Precio, Stock, Imagen FROM productos");
+// Se crea un array vacío donde guardaremos los productos
 $productos = [];
+// Si la consulta se ejecutó correctamente, se recorren los resultados
 if ($resultado) {
     while ($row = $resultado->fetch_assoc()) {
         $productos[$row['ID']] = $row;
