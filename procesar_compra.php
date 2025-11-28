@@ -2,71 +2,95 @@
 session_start();
 require_once "conexion.php"; // conexión en $conexion
 
-// Activar errores de MySQL como excepciones
+// Mostrar errores (solo en desarrollo)
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+header('Content-Type: application/json; charset=utf-8');
 
-// Enviar siempre JSON
-header('Content-Type: application/json');
-
-// Validar sesión
-if (!isset($_SESSION['usuario'])) {
-    echo json_encode(['error' => 'No estás logueado']);
+// ✅ Validar sesión
+if (!isset($_SESSION['id'])) {
+    echo json_encode(['error' => 'No estás logueado.']);
     exit;
 }
 
-$usuario = $_SESSION['usuario'];
+$usuario_id = intval($_SESSION['id']);
 
-// Validar que el carrito se haya enviado
+// ✅ Validar carrito recibido
 if (!isset($_POST['carrito'])) {
-    echo json_encode(['error' => 'Carrito no enviado']);
+    echo json_encode(['error' => 'Carrito no enviado.']);
     exit;
 }
 
 $carrito = json_decode($_POST['carrito'], true);
 if (!$carrito || !is_array($carrito) || count($carrito) === 0) {
-    echo json_encode(['error' => 'Carrito vacío o inválido']);
+    echo json_encode(['error' => 'Carrito vacío o inválido.']);
     exit;
 }
 
-// Obtener el ID del usuario
-$result = mysqli_query($conexion, "SELECT id FROM usuarios WHERE nombre = '".mysqli_real_escape_string($conexion, $usuario)."'");
-$usuarioData = mysqli_fetch_assoc($result);
-
-if (!$usuarioData) {
-    echo json_encode(['error' => 'Usuario no encontrado en la BD']);
-    exit;
-}
-
-$usuario_id = intval($usuarioData['id']);
 $totalCompra = 0;
 
-// Iniciar transacción
-mysqli_begin_transaction($conexion);
+// ✅ Iniciar transacción
+$conexion->begin_transaction();
 
 try {
     foreach ($carrito as $item) {
-        // Validar campos necesarios
-        if (!isset($item['nombre'], $item['cantidad'], $item['precio'])) {
-            throw new Exception("Datos de producto inválidos");
+
+        // 🔹 Validar datos recibidos
+        if (!isset($item['id']) || !isset($item['cantidad']) || !isset($item['precio'])) {
+            throw new Exception("Datos incompletos del producto en el carrito.");
         }
 
-        $nombre   = mysqli_real_escape_string($conexion, $item['nombre']);
-        $cantidad = intval($item['cantidad']);
-        $precio   = floatval($item['precio']);
+        $producto_id = intval($item['id']);
+        $cantidad    = intval($item['cantidad']);
+        $precio      = floatval($item['precio']);
 
-        $subtotal = $precio * $cantidad;
+        if ($producto_id <= 0 || $cantidad <= 0 || $precio <= 0) {
+            throw new Exception("Datos inválidos en el producto del carrito.");
+        }
+
+        $subtotal = $cantidad * $precio;
         $totalCompra += $subtotal;
 
-        // Insertar directamente en compras sin depender de productos
-        mysqli_query($conexion, "INSERT INTO compras (usuario_id, producto_id, cantidad, total, fecha) 
-                                VALUES (0, 0, $cantidad, $subtotal, NOW())");
+        // 🔹 Verificar stock del producto
+        $q = $conexion->prepare("SELECT stock FROM productos WHERE id = ?");
+        $q->bind_param("i", $producto_id);
+        $q->execute();
+        $r = $q->get_result();
+        $producto = $r->fetch_assoc();
+
+        if (!$producto) {
+            throw new Exception("Producto no encontrado (ID: $producto_id)");
+        }
+
+        if ($producto['stock'] < $cantidad) {
+            throw new Exception("Stock insuficiente para el producto ID $producto_id");
+        }
+
+        // 🔹 Actualizar stock
+        $nuevoStock = $producto['stock'] - $cantidad;
+        $update = $conexion->prepare("UPDATE productos SET stock = ? WHERE id = ?");
+        $update->bind_param("ii", $nuevoStock, $producto_id);
+        $update->execute();
+
+        // 🔹 Registrar compra
+        $insert = $conexion->prepare("
+            INSERT INTO compras (usuario_id, producto_id, cantidad, total, fecha)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $insert->bind_param("iiid", $usuario_id, $producto_id, $cantidad, $subtotal);
+        $insert->execute();
     }
-// Confirmar todos los inserts si no hubo errores
-    mysqli_commit($conexion);
-    echo json_encode(['success' => 'Compra realizada con éxito 🎉']);
+
+    // ✅ Confirmar transacción
+    $conexion->commit();
+
+    echo json_encode([
+        'success' => 'Compra registrada correctamente 🎉',
+        'total' => number_format($totalCompra, 2, ',', '.')
+    ]);
+
 } catch (Exception $e) {
-      // Deshacer los cambios si ocurrió un error
-    mysqli_rollback($conexion);
+    // ❌ Revertir cambios en caso de error
+    $conexion->rollback();
     echo json_encode(['error' => $e->getMessage()]);
 }
 ?>
